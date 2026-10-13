@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ t.dir }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ t.settings_title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="wrap">
+    <div class="lang-switch">
+      {% for l in langs %}
+        <a href="{{ url_for('settings_route', lang=l) }}" class="{{ 'active' if l == lang else '' }}">
+          {{ {'fr':'Français','en':'English','ar':'العربية'}[l] }}
+        </a>
+      {% endfor %}
+    </div>
+
+    <h1>{{ t.settings_title }}</h1>
+    <p class="subtitle">{{ t.settings_subtitle }}</p>
+
+    {% if saved %}
+      <div class="panel" style="border-color:#2fb66a;">
+        <span style="color:#2fb66a; font-weight:600;">✓ {{ t.saved_msg }}</span>
+      </div>
+    {% endif %}
+
+    <form action="{{ url_for('settings_route') }}" method="post">
+      <input type="hidden" name="lang" value="{{ lang }}">
+
+      {% set key_labels = {'VT_API_KEY': t.key_vt, 'GSB_API_KEY': t.key_gsb, 'URLHAUS_AUTH_KEY': t.key_urlhaus, 'GEMINI_API_KEY': t.key_gemini, 'DEEPSEEK_API_KEY': t.key_deepseek} %}
+
+      {% for name in key_names %}
+      <div class="panel">
+        <div class="kv-row" style="border:none; padding-bottom:10px;">
+          <span class="section-title" style="margin:0;">{{ key_labels[name] }}</span>
+          <span class="skipped">
+            {% if status[name] == 'session' %}🟢 {{ t.status_session }}
+            {% elif status[name] == 'env' %}🟡 {{ t.status_env }}
+            {% else %}⚪ {{ t.status_missing }}{% endif %}
+          </span>
+        </div>
+        <input type="password" name="{{ name }}" placeholder="{{ name }}" autocomplete="off">
+        {% if status[name] == 'session' %}
+          <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
+            <input type="checkbox" name="clear_{{ name }}" style="width:auto;">
+            <span style="font-size:0.85rem; color:var(--muted);">{{ t.clear_key }}</span>
+          </label>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      <button type="submit" class="submit">{{ t.save_btn }}</button>
+    </form>
+
+    <p class="skipped" style="margin-top:18px; line-height:1.6;">🔒 {{ t.settings_security_note }}</p>
+
+    <a class="back-link" href="{{ url_for('index', lang=lang) }}">{{ t.back_home }}</a>
+  </div>
+</body>
+</html>

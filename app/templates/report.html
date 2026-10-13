@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ t.dir }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ t.report_title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="wrap">
+    <h1>{{ t.report_title }}</h1>
+    <p class="subtitle">
+      {% if kind == 'pdf' %}{{ analysis.filename }}{% else %}{{ analysis.url }}{% endif %}
+    </p>
+
+    <div class="panel" style="text-align:center;">
+      <div class="skipped" style="margin-bottom:8px;">{{ t.verdict }}</div>
+      <span class="verdict-badge verdict-{{ analysis.final_verdict }}">
+        {{ t[analysis.final_verdict] if analysis.final_verdict in ['legit','suspicious','malicious'] else t.unknown }}
+      </span>
+    </div>
+
+    <div class="panel">
+      <div class="section-title">{{ t.ai_summary }}</div>
+      <div class="ai-box">
+        <strong>
+          {% if summary.source == 'gemini' %}{{ t.according_to_gemini }}
+          {% elif summary.source == 'deepseek' %}{{ t.according_to_deepseek }}
+          {% else %}{{ t.automatic_summary }}{% endif %}
+        </strong>
+        {{ summary.text }}
+        <div class="ai-source">
+          {% if summary.source == 'gemini' %}Gemini API
+          {% elif summary.source == 'deepseek' %}DeepSeek API
+          {% else %}{{ t.no_api_key }} (LLM) {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title">{{ t.static_section }}</div>
+      {% if module_conclusions.static %}
+        <p style="color:var(--muted); font-size:0.9rem; margin-top:-4px;">{{ module_conclusions.static }}</p>
+      {% endif %}
+      {% if analysis.static.indicators %}
+        {% for ind in analysis.static.indicators %}
+          <div class="indicator-row">
+            <span class="indicator-key">{{ ind.key }}</span>{{ ind.description }}
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="skipped">{{ t.no_indicators }}</p>
+      {% endif %}
+      <div class="kv-row"><span class="kv-key">Risk score</span><span>{{ analysis.static.risk_score }}/100</span></div>
+      {% if kind == 'pdf' %}
+        <div class="kv-row"><span class="kv-key">Objects</span><span>{{ analysis.static.object_count }}</span></div>
+        <div class="kv-row"><span class="kv-key">Encrypted</span><span>{{ analysis.static.is_encrypted }}</span></div>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <div class="section-title">{{ t.api_section }}</div>
+
+      <div class="kv-row"><span class="kv-key">VirusTotal</span>
+        <span>
+          {% if analysis.virustotal.status == 'skipped' %}{{ t.no_api_key }}
+          {% elif analysis.virustotal.status == 'error' %}⚠ {{ analysis.virustotal.message }}
+          {% elif analysis.virustotal.found %}
+            {{ analysis.virustotal.stats.malicious }} malicious / {{ analysis.virustotal.stats.suspicious }} suspicious / {{ analysis.virustotal.stats.harmless }} harmless
+          {% else %}{{ t.unknown }}{% endif %}
+        </span>
+      </div>
+      {% if module_conclusions.virustotal %}
+        <p style="color:var(--muted); font-size:0.87rem; margin:-2px 0 4px;">{{ module_conclusions.virustotal }}</p>
+      {% endif %}
+      {% if analysis.virustotal.permalink %}
+        <a href="{{ analysis.virustotal.permalink }}" target="_blank" rel="noopener" style="display:inline-block; margin:0 0 10px; color:var(--accent); font-size:0.85rem; text-decoration:none;">{{ t.vt_full_report }}</a>
+      {% endif %}
+
+      {% if kind == 'url' %}
+      <div class="kv-row"><span class="kv-key">URLhaus</span>
+        <span>
+          {% if analysis.urlhaus.status == 'error' %}⚠ {{ analysis.urlhaus.message }}
+          {% elif analysis.urlhaus.found %}<span class="verdict-badge verdict-malicious" style="padding:4px 12px; font-size:0.8rem;">{{ t.malicious }} — {{ analysis.urlhaus.threat }}</span>
+          {% else %}<span class="verdict-badge verdict-notlisted" style="padding:4px 12px; font-size:0.8rem;">{{ t.not_listed }}</span>{% endif %}
+        </span>
+      </div>
+      {% if module_conclusions.urlhaus %}
+        <p style="color:var(--muted); font-size:0.87rem; margin:-2px 0 8px;">{{ module_conclusions.urlhaus }}</p>
+      {% endif %}
+      <div class="kv-row"><span class="kv-key">Google Safe Browsing</span>
+        <span>
+          {% if analysis.safe_browsing.status == 'skipped' %}{{ t.no_api_key }}
+          {% elif analysis.safe_browsing.status == 'error' %}⚠ {{ analysis.safe_browsing.message }}
+          {% elif analysis.safe_browsing.found %}<span class="verdict-badge verdict-malicious" style="padding:4px 12px; font-size:0.8rem;">{{ t.malicious }}</span>
+          {% else %}<span class="verdict-badge verdict-notlisted" style="padding:4px 12px; font-size:0.8rem;">{{ t.not_listed }}</span>{% endif %}
+        </span>
+      </div>
+      {% if module_conclusions.safe_browsing %}
+        <p style="color:var(--muted); font-size:0.87rem; margin:-2px 0 8px;">{{ module_conclusions.safe_browsing }}</p>
+      {% endif %}
+      {% endif %}
+
+      {% if kind == 'pdf' and analysis.urlhaus_on_embedded_urls %}
+        {% for url_item, res in analysis.urlhaus_on_embedded_urls %}
+          <div class="kv-row"><span class="kv-key">URL: {{ url_item }}</span>
+            <span>{% if res.found %}{{ t.malicious }}{% else %}{{ t.legit }}{% endif %}</span>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    {% if kind == 'url' %}
+    <div class="panel">
+      <div class="section-title">{{ t.ml_section }}</div>
+      {% if module_conclusions.ml %}
+        <p style="color:var(--muted); font-size:0.9rem; margin-top:-4px;">{{ module_conclusions.ml }}</p>
+      {% endif %}
+      {% if analysis.ml.status == 'untrained' %}
+        <p class="skipped">{{ t.model_untrained }}</p>
+      {% else %}
+        <div class="kv-row"><span class="kv-key">{{ t.phishing_prob }}</span><span>{{ (analysis.ml.phishing_probability * 100) | round(1) }}%</span></div>
+        <div class="kv-row"><span class="kv-key">{{ t.verdict }}</span>
+          <span class="verdict-badge verdict-{{ analysis.ml.verdict }}">{{ t[analysis.ml.verdict] }}</span>
+        </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <a class="back-link" href="{{ url_for('index', lang=lang) }}">&larr; {{ t.back }}</a>
+    <p class="disclaimer">{{ t.disclaimer }}</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+# Secrets — ne jamais committer de vraies clés API
+keys.txt
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Données générées (regénérées au build Docker)
+app/data/*.csv
+app/data/*.joblib
+
+# Fichiers uploadés temporairement (supprimés après analyse, mais au cas où)
+app/uploads/*
+!app/uploads/.gitkeep
+
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
