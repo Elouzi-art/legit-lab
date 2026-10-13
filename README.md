@@ -203,11 +203,6 @@ Small improvements, detailed bug reports, and constructive suggestions are all v
 - **External services:** Depending on the integration, submitted indicators or files may be sent to third-party services. Avoid submitting confidential documents or sensitive URLs without authorization.
 - **Temporary files:** Uploaded files are removed after analysis according to the application's documented workflow.
 - **API credentials:** Keep secrets out of source code, Git history, Docker build layers, and public repositories.
-
-## License
-
-Add a `LICENSE` file to the repository and specify the license you choose before presenting the project as formally licensed open source.
-
 ---
 
 <p align="center">
