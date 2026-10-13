@@ -1,153 +1,215 @@
-# Legit-Lab — Lab de Triage de Légitimité (PDF / URL)
+# Legit-Lab — Fast URL & PDF Security Analysis
 
-Image Docker pédagogique pour les TP de cybersécurité : un étudiant dépose
-un **PDF** ou une **URL**, l'outil l'analyse via plusieurs couches
-indépendantes et produit un **rapport multilingue** (français / anglais /
-arabe) avec un verdict argumenté.
+<p align="center">
+<img src="assets/legit-lab-banner.png" alt="Legit-Lab — URL and PDF Security Analyzer" width="100%">
+</p>
 
-> ⚠️ Outil pédagogique, à usage de laboratoire / salle de classe.
-> Ne téléversez jamais de fichiers ou d'URLs appartenant à des tiers sans
-> leur consentement.
+<p align="center">
+<strong>Fast, accessible, open-source security triage.</strong>
+<br>
+Analyze suspicious URLs and PDF documents using static heuristics, machine learning, threat intelligence, and optional AI-powered reports.
+</p>
 
-## Couches d'analyse
+<p align="center">
+<a href="https://hub.docker.com/r/elouzi09/legit-lab">Docker Hub</a> ·
+<a href="../../issues">Report a Bug</a> ·
+<a href="../../issues">Request a Feature</a>
+</p>
 
-| Couche | Fonctionnement | Nécessite une clé API ? |
+---
+
+## Overview
+
+**Legit-Lab** is an open-source cybersecurity tool designed to make everyday security triage faster and more accessible.
+
+Analyze suspicious URLs and PDF files through multiple independent detection layers, inspect technical indicators, and generate clear, multilingual reports to help you understand potential threats.
+
+The goal is simple: **identify suspicious behavior quickly, understand the evidence, and make better-informed security decisions.**
+
+## Features
+
+- **URL Analysis** — Detect suspicious URL patterns, potential typosquatting, raw IP addresses, unusual TLDs, homographs, and other indicators.
+- **PDF Analysis** — Inspect JavaScript, automatic actions, launch actions, embedded files, and internal URLs.
+- **Threat Intelligence** — Enrich findings with VirusTotal, URLhaus, and Google Safe Browsing when configured.
+- **Machine Learning** — Estimate URL phishing risk using lexical features and a locally trained logistic regression model.
+- **AI-Powered Reports** — Generate concise explanations using Gemini or DeepSeek, with automatic template-based summaries when AI is unavailable.
+- **Multilingual Reports** — Available in French, English, and Arabic.
+- **Independent Analysis Layers** — Compare static indicators, ML predictions, and external reputation results.
+- **Flexible Configuration** — Core static analysis, ML predictions, and template-based reports work without API keys.
+- **Docker Support** — Run the application in an isolated container without manually installing its Python dependencies.
+
+## How It Works
+
+Legit-Lab combines several analysis techniques to provide a more complete picture of potential risks.
+
+| Analysis Layer | Purpose | API Key |
 |---|---|---|
-| **Heuristiques statiques** | PDF : `/JS`, `/OpenAction`, `/Launch`, fichiers embarqués, URLs internes (inspiré de `pdfid.py`). URL : typosquatting, IP brute, TLD suspect, homographes, etc. | Non |
-| **VirusTotal** | Réputation du hash de fichier / de l'URL auprès de dizaines d'antivirus | Oui (gratuit) |
-| **URLhaus (abuse.ch)** | Base de données publique de malware URLs | Oui (gratuit, obligatoire depuis juin 2025) |
-| **Google Safe Browsing** | Vérification de la réputation de l'URL par Google | Oui (gratuit) |
-| **Modèle ML** | Régression logistique entraînée sur des features lexicales de l'URL (longueur, tirets, IP, TLD, etc.) | Non — entraîné au build de l'image |
-| **Synthèse IA** | Résumé en langage naturel du rapport, dans la langue choisie, via Gemini ou DeepSeek. Sans clé : résumé par template (toujours fonctionnel). | Optionnel |
+| Static heuristics | Identify suspicious URL and PDF characteristics | Not required |
+| VirusTotal | Check available URL and file reputation information | Optional |
+| URLhaus | Check known malicious URL intelligence | Optional |
+| Google Safe Browsing | Check URL safety information | Optional |
+| Machine learning | Estimate phishing risk for URLs | Not required |
+| AI summaries | Explain findings in natural language | Optional |
 
-Toutes les clés API sont **optionnelles**. Sans aucune clé, le lab reste
-pleinement fonctionnel (analyse statique + ML + rapport template).
+Each layer provides different evidence. Results should be interpreted together rather than relying on a single verdict.
 
-Les clés peuvent être saisies de deux façons :
-1. **Depuis l'interface web** (page "⚙ Paramètres API") — gardées en
-   mémoire serveur, liées à la session du navigateur, jamais écrites sur
-   disque, effacées au redémarrage du conteneur. C'est la méthode
-   recommandée pour un usage en TP.
-2. **Via `docker run -e CLE=valeur`** — utile pour une config par défaut
-   partagée. Une clé saisie dans l'interface est toujours prioritaire.
+## Quick Start with Docker
 
-## Nouveautés récentes
-
-- **Chaque module a maintenant sa propre mini-conclusion** (3 phrases max, générée par template — toujours disponible, même sans clé API), en plus de la synthèse IA globale.
-- **Le modèle ML détecte désormais le typosquatting** : une nouvelle feature mesure la distance d'édition au nom de marque connu le plus proche (ex. `amaz0n.com` → très proche de `amazon`). Avant cet ajout, le ML ne voyait que des features génériques (longueur, tirets, HTTPS...) et ratait systématiquement les typosquats "propres" sans autre signal.
-- **Gemini/DeepSeek : retentative automatique** sur erreurs transitoires (503, 429, timeout), timeout augmenté (20s → 45s), et la synthèse IA est forcée en **un seul paragraphe** de 3 à 5 phrases.
-- Le message de repli distingue maintenant **"aucune clé fournie"** de **"clé fournie mais service indisponible"** — avant, le même message trompeur s'affichait dans les deux cas.
-- **Lien direct vers le rapport complet VirusTotal** affiché sous sa mini-conclusion (quand une clé VT est configurée).
-- La synthèse IA affiche maintenant explicitement sa source ("Selon Gemini :", "Selon DeepSeek :", ou "Résumé automatique (sans IA) :").
-- Le disclaimer n'est plus limité à un usage "labo / TP" — formulé pour un usage quotidien aussi bien que pédagogique.
-
-## ⚠️ À propos du modèle ML
-
-Le modèle est entraîné sur un **jeu de données synthétique généré par
-règles** (`generate_dataset.py`), pas sur un vrai corpus de phishing
-réel — c'est volontaire pour que le build Docker reste 100% reproductible
-hors-ligne. C'est un bon point de discussion en TP : comparez ses
-prédictions à celles de VirusTotal et discutez des cas où il se trompe
-(faux positifs / faux négatifs, biais du dataset synthétique).
-
-Pour aller plus loin, vous pouvez remplacer `data/url_dataset.csv` par un
-vrai dataset (ex. PhishTank, OpenPhish) et relancer `python ml_model.py`.
-
-## Construction de l'image
+### 1. Pull the image
 
 ```bash
-docker build -t legit-lab .
+docker pull elouzi09/legit-lab:latest
 ```
 
-Le dataset et le modèle ML sont générés et entraînés **pendant le build**
-(pas de délai au premier lancement).
-
-## Lancement
-
-### Sans aucune clé API (mode 100% hors-ligne / ML + heuristiques)
+### 2. Start the application
 
 ```bash
-docker run -p 5000:5000 legit-lab
+docker run --rm -p 5000:5000 elouzi09/legit-lab:latest
 ```
 
-Ouvrez http://localhost:5000
+### 3. Open the interface
 
-### Avec les clés API (toutes optionnelles)
+Visit:
+
+[http://localhost:5000](http://localhost:5000)
+
+You can begin analyzing URLs and PDF documents without configuring external API keys.
+
+## API Configuration
+
+Legit-Lab supports five optional service integrations:
+
+| Service | Purpose |
+|---|---|
+| VirusTotal | URL and file reputation checks |
+| URLhaus (abuse.ch) | Malicious URL intelligence |
+| Google Safe Browsing | URL safety checks |
+| Google Gemini | AI-powered report summaries |
+| DeepSeek | Alternative AI-powered summaries |
+
+**All API integrations are optional.** Without API credentials, static heuristics, the locally trained ML model, and template-based reports remain available.
+
+### Option 1 — Use `.env.example`
+
+Copy the example configuration:
 
 ```bash
-docker run -p 5000:5000 \
-  -e VT_API_KEY=xxxxx \
-  -e GSB_API_KEY=xxxxx \
-  -e GEMINI_API_KEY=xxxxx \
-  legit-lab
+cp .env.example .env
 ```
 
-Ou copiez `.env.example` en `.env`, remplissez vos clés, puis :
+Edit `.env` and enter the API keys you want to use. Leave unused keys empty.
+
+Then launch the container:
 
 ```bash
-docker run -p 5000:5000 --env-file .env legit-lab
+docker run --rm -p 5000:5000 \
+--env-file .env \
+elouzi09/legit-lab:latest
 ```
 
-### Obtenir les clés
+Make sure `.env.example` contains the correct variable names and that `.env` is excluded from version control.
 
-4 des 5 services sont 100% gratuits (juste un compte à créer, aucune
-carte bancaire requise) : VirusTotal, Safe Browsing, URLhaus, Gemini.
-DeepSeek est payant (prépaiement) — optionnel, à utiliser seulement si tu
-veux une alternative à Gemini.
+### Option 2 — Configure keys through the interface
 
-- **VirusTotal** : https://www.virustotal.com/gui/my-apikey
-- **Google Safe Browsing** : https://developers.google.com/safe-browsing/v4/get-started
-- **URLhaus (abuse.ch)** : https://auth.abuse.ch/ (connecte-toi, puis section "Optional" → "Create Auth-Key")
-- **Gemini (Google AI Studio)** : https://aistudio.google.com/app/apikey
-- **DeepSeek** : https://platform.deepseek.com/api_keys
+Use the application's **API Settings** page to configure supported services.
 
-## Utilisation en TP
+According to the application configuration, keys entered through the interface take priority over environment variables. Interface-provided keys are stored in server memory for the browser session and are cleared when the container restarts.
 
-1. L'étudiant choisit la langue du rapport (FR / EN / AR) en haut de la page.
-2. Il dépose un PDF fourni par l'enseignant, ou colle un lien suspect.
-3. Il obtient un rapport avec :
-   - un verdict global (légitime / suspect / malveillant),
-   - le détail de chaque indicateur statique déclenché,
-   - les résultats des API externes (si clés fournies),
-   - la probabilité de phishing du modèle ML (pour les URLs),
-   - une synthèse en langage naturel.
+### Option 3 — Pass environment variables directly
 
-Idée d'exercice : demander aux étudiants de forger un PDF ou une URL qui
-trompe une couche mais pas les autres, pour comprendre les limites de
-chaque méthode de détection.
+The following example illustrates the configuration pattern for the three explicitly documented variable names:
 
-## Structure du projet
-
-```
-legit-lab/
-├── Dockerfile
-├── entrypoint.sh
-├── requirements.txt
-├── .env.example
-└── app/
-    ├── app.py                # Serveur Flask (routes + orchestration)
-    ├── pdf_analysis.py        # Heuristiques statiques PDF
-    ├── url_analysis.py        # Heuristiques statiques URL
-    ├── api_clients.py         # VirusTotal / URLhaus / Safe Browsing
-    ├── ml_model.py            # Extraction de features + prédiction ML
-    ├── generate_dataset.py    # Génération du dataset synthétique
-    ├── llm_report.py          # Synthèse IA (Gemini / DeepSeek / fallback)
-    ├── i18n.py                # Traductions FR / EN / AR
-    ├── templates/             # index.html, report.html
-    └── static/style.css
+```bash
+docker run --rm -p 5000:5000 \
+-e VT_API_KEY="your_virustotal_key" \
+-e GSB_API_KEY="your_safe_browsing_key" \
+-e GEMINI_API_KEY="your_gemini_key" \
+elouzi09/legit-lab:latest
 ```
 
-## Sécurité — à lire avant de publier l'image ou de l'exposer sur un réseau
+For URLhaus and DeepSeek, use the exact variable names defined in `.env.example` and supported by the application.
 
-- **Prévu pour un usage local** (`localhost`) ou sur un réseau de confiance — le serveur Flask intégré n'est pas un serveur de production et il n'y a aucune authentification. Ne l'expose pas directement sur internet sans mettre un reverse proxy (HTTPS + authentification) devant.
-- **Ne jamais figer de clé API dans le Dockerfile** (`ENV VT_API_KEY=...` codé en dur) avant de publier l'image — passe toujours les clés via `-e` au lancement, ou via la page "⚙ Paramètres" de l'interface.
-- Les fichiers uploadés sont supprimés immédiatement après analyse ; rien ne persiste entre deux analyses.
-- Aucun secret n'est intégré dans l'image telle que fournie — vérifié avant chaque publication de ce projet.
+**Never commit real API keys to GitHub or embed them in a published Docker image.** Use your own credentials and review each provider's data-handling policies before submitting URLs or files.
 
-## Limites connues (bonnes pour la discussion en TP)
+### Obtain API keys
 
-- Le modèle ML est un modèle de démonstration (dataset synthétique).
-- `tldextract` utilise volontairement son instantané hors-ligne (pas de
-  tentative de téléchargement réseau), pour fonctionner en salle isolée.
-- Les quotas gratuits des API (VirusTotal notamment) sont limités —
-  prévoir une clé par groupe d'étudiants plutôt qu'une clé partagée.
+- **VirusTotal:** https://www.virustotal.com/gui/my-apikey
+- **URLhaus:** https://auth.abuse.ch/
+- **Google Safe Browsing:** https://developers.google.com/safe-browsing/v4/get-started
+- **Google Gemini:** https://aistudio.google.com/app/apikey
+- **DeepSeek:** https://platform.deepseek.com/api_keys
+
+Availability, quotas, and terms depend on each provider and may change.
+
+## Example Workflow
+
+1. Open the web interface.
+2. Select French, English, or Arabic for the report.
+3. Submit a URL or upload a PDF you are authorized to analyze.
+4. Review the overall assessment and the individual detection indicators.
+5. Compare local analysis results with available external reputation checks.
+6. Read the generated summary and investigate suspicious findings further.
+
+Reports can include a global verdict, triggered static indicators, external API results, URL phishing risk estimates, and a natural-language summary.
+
+## Machine Learning: Important Limitations
+
+The URL classification model is trained on a **synthetic dataset generated by project rules**, rather than a validated corpus of real-world phishing URLs.
+
+This approach keeps the Docker build reproducible and avoids downloading a training dataset during the build. However, its predictions are experimental and should not be interpreted as calibrated probabilities of real-world phishing.
+
+The model can produce false positives and false negatives. Its performance should be evaluated against representative, properly labeled datasets before being relied upon in operational environments.
+
+To experiment with alternative datasets, review `data/url_dataset.csv`, `generate_dataset.py`, and `ml_model.py`. Use datasets only in accordance with their licenses and usage conditions.
+
+## Roadmap
+
+- [ ] Provide a documented REST API for integration with other security tools.
+- [ ] Improve detection using validated real-world datasets.
+- [ ] Expand report export and automation capabilities.
+- [ ] Add automated tests and improve detection coverage.
+- [ ] Explore integrations with security workflows and incident response platforms.
+- [ ] Improve transparency around detection confidence, false positives, and false negatives.
+
+The REST API is a **future enhancement**, not a feature advertised as currently available.
+
+## Contributing
+
+Legit-Lab is an open-source project, and contributions are welcome.
+
+You can help by:
+
+- Improving URL and PDF detection techniques.
+- Adding analysis modules and threat intelligence integrations.
+- Improving translations, documentation, and accessibility.
+- Reporting bugs and suggesting new features.
+- Adding tests and evaluating detection quality.
+- Improving performance, reliability, and maintainability.
+
+### How to contribute
+
+1. Fork the repository.
+2. Create a feature branch.
+3. Implement and test your changes.
+4. Commit your work with a clear message.
+5. Open a pull request describing the change and its purpose.
+
+Small improvements, detailed bug reports, and constructive suggestions are all valuable contributions.
+
+## Security and Privacy
+
+- **Local deployment:** The built-in Flask server is intended for local use or trusted networks. It does not provide application authentication by default.
+- **Internet exposure:** Do not expose the development server directly to the public internet. Use appropriate authentication, HTTPS, and production deployment controls.
+- **External services:** Depending on the integration, submitted indicators or files may be sent to third-party services. Avoid submitting confidential documents or sensitive URLs without authorization.
+- **Temporary files:** Uploaded files are removed after analysis according to the application's documented workflow.
+- **API credentials:** Keep secrets out of source code, Git history, Docker build layers, and public repositories.
+
+## License
+
+Add a `LICENSE` file to the repository and specify the license you choose before presenting the project as formally licensed open source.
+
+---
+
+<p align="center">
+<strong>Built for faster security triage. Improved through open-source collaboration.</strong>
+</p>
